@@ -9,9 +9,10 @@ import random
 # tree node class definition
 class TreeNode():
     # class constructor (create tree node class instance)
-    def __init__(self, board, parent):
+    def __init__(self, board, move, parent = None):
         # init associated board state
         self.board = board
+        self.move = move
 
         # init is node terminal flag
         if self.board.is_win() or self.board.is_draw():
@@ -47,7 +48,7 @@ class MCTS():
         self.current_side = initial_state.player1
 
         # walk through 1000 iterations
-        for iteration in range(1500):
+        for iteration in range(1000):
             # select a node (selection phase)
             node = self.select(self.root)
 
@@ -58,11 +59,9 @@ class MCTS():
             self.backpropagate(node, score)
 
         # pick up the best move in the current position
-        try:
-            return self.get_best_move(self.root, 0)
+        return self.get_best_move(self.root, 0)
 
-        except:
-            pass
+
 
     # select most promising node
     def select(self, node):
@@ -83,20 +82,21 @@ class MCTS():
     # expand node
     def expand(self, node):
         # generate legal states (moves) for the given node
-        states = node.board.generate_states()
+        moves = node.board.generate_states()
 
         # loop over generated states (moves)
-        for state in states:
+        for move in moves:
             # make sure that current state (move) is not present in child nodes
-            if str(state.position) not in node.children:
+            if move not in node.children:   
                 # create a new node
-                new_node = TreeNode(state, node)
+                state = node.board.make_move(move) 
+                new_node = TreeNode(state, move, node)
 
                 # add child node to parent's node children list (dict)
-                node.children[str(state.position)] = new_node
+                node.children[move] = new_node
 
                 # case when node is fully expanded
-                if len(states) == len(node.children):
+                if len(moves) == len(node.children):
                     node.is_fully_expanded = True
 
                 # return newly created node
@@ -110,7 +110,7 @@ class MCTS():
             # try to make a move
             try:
                 # make the on board
-                board = random.choice(board.generate_states())
+                board = board.make_move(random.choice(board.generate_states()))
 
             # no moves available
             except:
@@ -144,11 +144,8 @@ class MCTS():
         # loop over child nodes
         for child_node in node.children.values():
             # define current player
-            if child_node.board.player2 == 1: current_player = 1
-            elif child_node.board.player2 == -1: current_player = -1
-
             # get move score using UCT formula
-            move_score = current_player * child_node.score / child_node.visits + exploration_constant * np.sqrt(np.log(node.visits / child_node.visits))
+            move_score = child_node.board.player2 * child_node.score / child_node.visits + exploration_constant * np.sqrt(np.log(node.visits / child_node.visits))
 
             # better move has been found
             if move_score > best_score:
@@ -158,6 +155,5 @@ class MCTS():
             # found as good move as already available
             elif move_score == best_score:
                 best_moves.append(child_node)
-
         # return one of the best moves randomly
         return random.choice(best_moves)
