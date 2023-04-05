@@ -1,8 +1,9 @@
 from copy import deepcopy
 import numpy as np
-#from mcts import *
-from MonteCarloTS import *
+from mctsNN import *
+#from MonteCarloTS import *
 import traceback
+import time
 
 class Board():
     def __init__(self, board = None):
@@ -18,8 +19,13 @@ class Board():
         if board is not None:
             self.__dict__ = deepcopy(board.__dict__)
 
-    def make_move(self, row, col):
+    def make_move(self, move):
         board = Board(self)
+
+        row = move % self.size
+
+        col = int(move / self.size)
+
         board.position[row, col] = self.player1
 
         count = (board.position == self.empty_square).sum()
@@ -104,6 +110,7 @@ class Board():
 
         # define states list (move list - list of available actions to consider)
         actions = []
+        moves = []
 
         # loop over board rows
         for row in range(self.size):
@@ -112,9 +119,11 @@ class Board():
                 # make sure that current square is empty
                 if self.position[row, col] == self.empty_square:
                     # append available action/board state to action list
-                    actions.append(self.make_move(row, col))
+                    move = row + self.size*col
+                    moves.append(move)
+                    actions.append(self.make_move(move))
 
-        return actions
+        return moves
         ##returns a 1D array in the form of row + col / 100
         #row, col = np.where(self.position == 0)
         #actions = row + col / 100
@@ -142,9 +151,9 @@ class Board():
                     print(' Illegal move!')
                     continue
 
-
+                move = row + col*self.size 
                 # make move on board
-                return(row, col)
+                return(move)
 
             except Exception as e:
                 #traceback.print_exc()
@@ -155,7 +164,10 @@ class Board():
 
     def ai_move(self):
         mcts = MCTS()
+        tick = time.time()
         best_move = mcts.search(self)
+        tock = time.time()
+        print(tock - tick)
         return(best_move)
 
 
@@ -171,8 +183,8 @@ class Board():
         while True:
             # get user input
             if self.player1 == -1:
-                row, col = self.human_move()
-                self = self.make_move(row, col)
+                move = self.human_move()
+                self = self.make_move(move)
                 print(self)
             # check if the game is won
             if self.is_win():
@@ -185,10 +197,8 @@ class Board():
                 break
 
             if self.player1 == 1:
-                #x = self.generate_states()
-                #print(x)
-                #row, col = self.human_move()
-                #self = self.make_move(row, col)
+                #move = self.human_move()
+                #self = self.make_move(move)
                 #print(self)
 
                 best_move = self.ai_move()
